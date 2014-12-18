@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+
+from argparse import ArgumentParser, REMAINDER
+from subprocess import Popen, PIPE
+from random import randrange
+from os import rename
+from os.path import dirname, basename, join
+
+parser = ArgumentParser()
+parser.add_argument("-i","--input-file")
+parser.add_argument("-o","--output-file")
+parser.add_argument("command_to_run",nargs=REMAINDER)
+args = parser.parse_args()
+
+if args.command_to_run:
+    if args.input_file:
+        stdin = open(args.input_file)
+    else:
+        stdin = None
+    if args.output_file:
+        direc = dirname(args.output_file)
+        base = basename(args.output_file)
+        tmpbase = "{f}.{rand:06x}".format(rand=randrange(16**6),f=base)
+        tmp = join(direc,tmpbase)
+        with open(tmp,"w") as f:
+            p = Popen(args.command_to_run,stdout=f,stdin=stdin)
+            p.wait()
+        if p.returncode >= 0:
+            rename(tmp,args.output_file)
+        else:
+            rename(tmp,args.output_file+".KILLED")
+        exit(p.returncode)
+    else:
+        p = Popen(args.command_to_run,stdin=stdin)
+        p.wait()
+        exit(p.returncode)
